@@ -1,0 +1,5 @@
+I could welcome new users
+!chess		Plays chess
+!checkers	    Plays checkers
+!connect4	    Plays connect4
+!commands		List commands
