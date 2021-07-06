@@ -1,10 +1,11 @@
+from asyncio.windows_events import NULL
 from os import times
 import random
 from discord.ext import commands
 
 bot = commands.Bot(command_prefix='!')
-version_num = "1.4" # helps to keep track of updates while running program and in discord
-emptyBoard = [['-','-','-','-','-','-'], ['-','-','-','-','-','-'], ['-','-','-','-','-','-'], ['-','-','-','-','-','-'], ['-','-','-','-','-','-'], ['-','-','-','-','-','-'], ['-','-','-','-','-','-']]
+version_num = "1.53" # helps to keep track of updates while running program and in discord
+emptyBoard = [['-','-','-','-','-','-','-'], ['-','-','-','-','-','-','-'], ['-','-','-','-','-','-','-'], ['-','-','-','-','-','-','-'], ['-','-','-','-','-','-','-'], ['-','-','-','-','-','-','-']]
 
 @bot.command(name="idea", help="Get idea from preset ideas to add to this robot")
 async def idea(ctx):
@@ -12,8 +13,8 @@ async def idea(ctx):
     await ctx.send("Add a feature to me: " + random.choice(lines))
 
 
-@bot.command(name="copyMe", help="Repeats what is said after the command")
-async def copyMe(ctx, *, args=""):
+@bot.command(name="echo", help="Repeats what is said after the command")
+async def echo(ctx, *, args=""):
     if args:
         await ctx.send(args)
     else:
@@ -28,7 +29,7 @@ async def ligma(ctx):
         await ctx.send("!dragon")
 
 
-@bot.command(name="dragon", hidden=True)
+@bot.command(name="dragon", hidden=True)    # hidden=True means that the command doesn't show up in !help
 async def dragon(ctx):
     if random.randint(1,3) // 3:    # True == 1 in python. If the number is a 3, do next line
         await ctx.send("Dragon this ligma!")
@@ -75,71 +76,240 @@ async def play(ctx, column: int = 0):  # column chosen to drop
     global connect4Dict
     userID = ctx.author
     board = connect4Dict.get(userID, emptyBoard)
-    if connect4Dict.get(userID):
+    if connect4Dict.get(userID):    # if board is set, continues game
+        if column < 1 or column > 7:
+            await ctx.send("Invalid Column. Chose a column 1-7")
+            return
         await updateBoard(ctx, board, column)
-        connect4Dict[userID] = computerTurn(ctx, board, random.randint(1,7))
-    else:
+        await computerTurn(ctx, board, 1)
+    else:   # if board is empty, new game logic
         await ctx.send("Starting new game")
         connect4Dict[userID] = emptyBoard
-        #if random.getrandbits(1):
-        if False:
-            await ctx.send("I'll go first")
-            connect4Dict[userID] = computerTurn(ctx, emptyBoard, random.randint(1,7))
+        if column < 1 or column > 7:
+            await ctx.send("I'll go first")    # if bad/no input is given, computer starts first
+            await computerTurn(ctx, emptyBoard, random.randint(1,7))
         else:
             await ctx.send("You go first")
-            if column == 0:
-                await printBoard(ctx, emptyBoard)
-            else:
-                await updateBoard(ctx, emptyBoard, column)
-                connect4Dict[userID] = computerTurn(ctx, emptyBoard, random.randint(1,7))
-
+            await updateBoard(ctx, emptyBoard, column)
+            await computerTurn(ctx, connect4Dict.get(userID), random.randint(1,7))
 
 
 async def updateBoard(ctx, board, column):
+    global connect4Dict
     newBoard = board    # test if variable newBoard is needed later
-    depth = 7
+    depth = 6
     try:
         while newBoard[depth - 1][column - 1]!='-':
             depth-=1
     except Exception as IndexError:
-        await ctx.send("depth:" + depth)
-        await ctx.send("Column:" + column)       
-        await ctx.send("newBoard:" + newBoard)       
         await ctx.send("Column is full. Pick another column")
     newBoard[depth - 1][column - 1] = 'o'
+    connect4Dict[ctx.author] = newBoard
     if depth == 0:
         if '-' not in newBoard[0]:
             await ctx.send("The game is a draw")
             await printBoard(ctx, newBoard)
             times.sleep(3)
             await ctx.send("Use !play to play again")
-            connect4Dict[ctx.author] = emptyBoard
+            connect4Dict[ctx.author] = NULL
             return
-    connect4Dict[ctx.author] = newBoard
+    # win logic
+    y = depth - 1
+    x = column - 1
+    try:
+        if newBoard[y][x] == newBoard[y - 1][x - 1] and newBoard[y - 1][x - 1] == newBoard[y - 2][x - 2] and newBoard[y - 2][x - 2] == newBoard[y - 3][x - 3]:
+            await ctx.send("You win!")
+            connect4Dict[ctx.author] = NULL
+            return
+    except Exception as IndexError:
+        pass
+    try:
+        if newBoard[y][x] == newBoard[y - 1][x + 1] and newBoard[y - 1][x + 1] == newBoard[y - 2][x + 2] and newBoard[y - 2][x + 2] == newBoard[y - 3][x + 3]:
+            await ctx.send("You win!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass
+    if y < 5:
+        try:
+            if newBoard[y + 1][x - 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y - 1][x + 1] and newBoard[y - 1][x + 1] == newBoard[y - 2][x + 2]:
+                await ctx.send("You win!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass
+        try:
+            if newBoard[y + 1][x + 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y - 1][x - 1] and newBoard[y - 1][x - 1] == newBoard[y - 2][x - 2]:
+                await ctx.send("You win!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass
+    if y < 4:
+        try:
+            if newBoard[y + 2][x - 2] == newBoard[y + 1][x - 1] and newBoard[y + 1][x - 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y - 1][x + 1]:
+                await ctx.send("You win!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass
+        try:
+            if newBoard[y + 2][x + 2] == newBoard[y + 1][x + 1] and newBoard[y + 1][x + 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y - 1][x - 1]:
+                await ctx.send("You win!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass
+    if y < 3:
+        if newBoard[y + 3][x] == newBoard[y + 2][x] and newBoard[y + 2][x] == newBoard[y + 1][x] and newBoard[y + 1][x] == newBoard[y][x]:
+            await ctx.send("You win!")
+            connect4Dict[ctx.author] = NULL
+        try:
+            if newBoard[y + 3][x - 3] == newBoard[y + 2][x - 2] and newBoard[y + 2][x - 2] == newBoard[y + 1][x - 1] and newBoard[y + 1][x - 1] == newBoard[y][x]:
+                await ctx.send("You win!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass 
+        try:
+            if newBoard[y + 3][x + 3] == newBoard[y + 2][x + 2] and newBoard[y + 2][x + 2] == newBoard[y + 1][x + 1] and newBoard[y + 1][x + 1] == newBoard[y][x]:
+                await ctx.send("You win!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass 
+    try:
+        if newBoard[y][x - 3] == newBoard[y][x - 2] and newBoard[y][x - 2] == newBoard[y][x - 1] and newBoard[y][x - 1] == newBoard[y][x]:
+            await ctx.send("You win!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass 
+    try:
+        if newBoard[y][x + 3] == newBoard[y][x + 2] and newBoard[y][x + 2] == newBoard[y][x + 1] and newBoard[y][x + 1] == newBoard[y][x]:
+            await ctx.send("You win!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass 
+    try:
+        if newBoard[y][x + 2] == newBoard[y][x + 1] and newBoard[y][x + 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y][x - 1]:
+            await ctx.send("You win!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass 
+    try:
+        if newBoard[y][x - 2] == newBoard[y][x - 1] and newBoard[y][x - 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y][x + 1]:
+            await ctx.send("You win!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass
+    # updates board
     await printBoard(ctx, newBoard)
-    print("board updated")
+    print("board updated on player turn")
 
 
 async def computerTurn(ctx, board, column):
+    global connect4Dict
+    print("Start computer turn")
+    if connect4Dict[ctx.author] == NULL:
+        return
     newBoard = board    # test if variable newBoard is needed later
-    depth = 7
+    depth = 6
     try:
         while newBoard[depth - 1][column - 1]!='-':
             depth-=1
     except Exception as IndexError:
-        await ctx.send("Column is full. Pick another column")
-    newBoard[depth - 1][column - 1] = 'x'
+        await computerTurn(ctx, board, random.randint(1,7))   # if computer move is invalid, try again
+        return
+    newBoard[depth - 1][column - 1] = 'x'    
+    connect4Dict[ctx.author] = newBoard
     if depth == 0:
         if '-' not in newBoard[0]:
             await ctx.send("The game is a draw")
             await printBoard(ctx, newBoard)
             times.sleep(3)
             await ctx.send("Use !play to play again")
-            connect4Dict[ctx.author] = emptyBoard
+            connect4Dict[ctx.author] = NULL
             return
-    connect4Dict[ctx.author] = newBoard
+    await ctx.send("Computer turn")
+    # win logic
+    # win logic
+    y = depth - 1
+    x = column - 1
+    try:
+        if newBoard[y][x] == newBoard[y - 1][x - 1] and newBoard[y - 1][x - 1] == newBoard[y - 2][x - 2] and newBoard[y - 2][x - 2] == newBoard[y - 3][x - 3]:
+            await ctx.send("Computer wins!")
+            connect4Dict[ctx.author] = NULL
+            return
+    except Exception as IndexError:
+        pass
+    try:
+        if newBoard[y][x] == newBoard[y - 1][x + 1] and newBoard[y - 1][x + 1] == newBoard[y - 2][x + 2] and newBoard[y - 2][x + 2] == newBoard[y - 3][x + 3]:
+            await ctx.send("Computer wins!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass
+    if y < 5:
+        try:
+            if newBoard[y + 1][x - 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y - 1][x + 1] and newBoard[y - 1][x + 1] == newBoard[y - 2][x + 2]:
+                await ctx.send("Computer wins!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass
+        try:
+            if newBoard[y + 1][x + 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y - 1][x - 1] and newBoard[y - 1][x - 1] == newBoard[y - 2][x - 2]:
+                await ctx.send("Computer wins!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass
+    if y < 4:
+        try:
+            if newBoard[y + 2][x - 2] == newBoard[y + 1][x - 1] and newBoard[y + 1][x - 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y - 1][x + 1]:
+                await ctx.send("Computer wins!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass
+        try:
+            if newBoard[y + 2][x + 2] == newBoard[y + 1][x + 1] and newBoard[y + 1][x + 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y - 1][x - 1]:
+                await ctx.send("Computer wins!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass
+    if y < 3:
+        if newBoard[y + 3][x] == newBoard[y + 2][x] and newBoard[y + 2][x] == newBoard[y + 1][x] and newBoard[y + 1][x] == newBoard[y][x]:
+            await ctx.send("Computer wins!")
+            connect4Dict[ctx.author] = NULL
+        try:
+            if newBoard[y + 3][x - 3] == newBoard[y + 2][x - 2] and newBoard[y + 2][x - 2] == newBoard[y + 1][x - 1] and newBoard[y + 1][x - 1] == newBoard[y][x]:
+                await ctx.send("Computer wins!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass 
+        try:
+            if newBoard[y + 3][x + 3] == newBoard[y + 2][x + 2] and newBoard[y + 2][x + 2] == newBoard[y + 1][x + 1] and newBoard[y + 1][x + 1] == newBoard[y][x]:
+                await ctx.send("Computer wins!")
+                connect4Dict[ctx.author] = NULL
+        except Exception as IndexError:
+            pass 
+    try:
+        if newBoard[y][x - 3] == newBoard[y][x - 2] and newBoard[y][x - 2] == newBoard[y][x - 1] and newBoard[y][x - 1] == newBoard[y][x]:
+            await ctx.send("Computer wins!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass 
+    try:
+        if newBoard[y][x + 3] == newBoard[y][x + 2] and newBoard[y][x + 2] == newBoard[y][x + 1] and newBoard[y][x + 1] == newBoard[y][x]:
+            await ctx.send("Computer wins!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass 
+    try:
+        if newBoard[y][x + 2] == newBoard[y][x + 1] and newBoard[y][x + 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y][x - 1]:
+            await ctx.send("Computer wins!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass 
+    try:
+        if newBoard[y][x - 2] == newBoard[y][x - 1] and newBoard[y][x - 1] == newBoard[y][x] and newBoard[y][x] == newBoard[y][x + 1]:
+            await ctx.send("Computer wins!")
+            connect4Dict[ctx.author] = NULL
+    except Exception as IndexError:
+        pass
+    # updates board
     await printBoard(ctx, newBoard)
-    print("board updated")
+    print("board updated on comptuer turn")
 
 
 async def printBoard(ctx, board):
@@ -149,7 +319,12 @@ async def printBoard(ctx, board):
             toSend+= item + "     "
         toSend += "|"
         await ctx.send(toSend)
-    
+
+
+@bot.command(name="resetBoard", help="Resets connect4 board")
+async def play(ctx):  # column chosen to drop
+    connect4Dict[ctx.author] = NULL
+    await ctx.send("Board reset")
 
 
 with open("BOT_TOKEN.txt", "r") as token_file:
