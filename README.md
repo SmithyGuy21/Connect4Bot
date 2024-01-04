@@ -50,6 +50,9 @@ Welcome to the Connect 4 Discord Bot! This bot allows users to play the classic 
 
 ## License
 
-This Connect 4 Discord Bot is provided under the [CC BY 4.0 International](https://creativecommons.org/licenses/by/4.0/) license. Feel free to replicate and modify the code for your own use while crediting me. The bot is available for educational and personal purposes.
+This Connect 4 Discord Bot is provided under the [CC0 1.0 Universal (CC0 1.0) Public Domain Dedication](https://creativecommons.org/publicdomain/zero/1.0/). 
+
+Feel free to replicate and modify the code for your own use without any restrictions. The bot is available for educational and personal purposes.
 
 Enjoy playing Connect 4 against the AI on your Discord server!
+
